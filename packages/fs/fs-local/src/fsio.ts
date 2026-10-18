@@ -11,7 +11,7 @@ import { chmod, link, lstat, mkdir, open, readFile, readdir, rename, rm, stat } 
 import type { BigIntStats, Dirent, Stats } from 'node:fs'
 import { basename, dirname, isAbsolute, join, resolve, sep } from 'node:path'
 import { TextDecoder, promisify } from 'node:util'
-import { FsError, FsTargetKey, FsVersion } from '@deepseek-ai/dsh-fs'
+import { FsError, FsTargetKey, FsVersion, anchorMismatchDiagnostic, noFragmentNote } from '@deepseek-ai/dsh-fs'
 import { copyFileDaclWin32, replaceFileWin32 } from './win32.ts'
 
 const BINARY_SAMPLE_BYTES = 8192
@@ -825,7 +825,11 @@ export function applyLiteralEdit(
   const newNorm = normalizeLineEndings(newString)
   const replacements = countOccurrences(content, oldNorm)
   if (replacements === 0) {
-    throw new FsError(`old_string was not found in "${displayPath}"`, 'FS_EDIT_NOT_FOUND')
+    // Anchor-mismatch diagnostics: quote the file's actual text at the closest
+    // surviving anchor fragment so the model can retry without a blind re-read
+    // (retro #103, F05).
+    const diagnostic = anchorMismatchDiagnostic(content, oldNorm) || noFragmentNote()
+    throw new FsError(`old_string was not found in "${displayPath}"${diagnostic}`, 'FS_EDIT_NOT_FOUND')
   }
   if (!replaceAll && replacements > 1) {
     throw new FsError(`old_string matched ${replacements} times in "${displayPath}"; provide a more specific old_string or set replace_all to true`, 'FS_AMBIGUOUS_EDIT')

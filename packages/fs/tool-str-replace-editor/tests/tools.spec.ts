@@ -455,6 +455,20 @@ describe('tool-str-replace-editor', () => {
     })).isError).toBe(false)
     expect(await readFile(mixedEol, 'utf8')).toBe('replaced\nmiddle\nalpha\nbeta')
 
+    const drifted = join(root, 'drifted-anchor.txt')
+    await writeFile(drifted, 'prefix alpha value = stale\nsuffix line\n')
+    const driftedMatch = await call(ctx, owner, {
+      command: 'str_replace',
+      path: drifted,
+      old_str: 'prefix alpha value = fresh',
+      new_str: 'x',
+    })
+    expect(driftedMatch.isError).toBe(true)
+    expect(text(driftedMatch)).toContain('closest anchor fragment at line 1')
+    expect(text(driftedMatch)).toContain('prefix alpha value = stale')
+    expect(text(driftedMatch)).toContain('— actual text:')
+    expect(text(driftedMatch)).not.toContain('(line endings normalized)')
+
     const relative = await call(ctx, owner, { command: 'view', path: 'ambiguous.txt' })
     expect(relative.isError).toBe(true)
     expect(text(relative)).toContain('is not an absolute path')

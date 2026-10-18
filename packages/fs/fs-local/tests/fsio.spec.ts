@@ -960,6 +960,23 @@ describe('applyLiteralEdit', () => {
   it('matches across normalized line endings', () => {
     expect(applyLiteralEdit('one\ntwo', 'one\ntwo', 'x', false, 'f').replacements).toBe(1)
   })
+
+  it('quotes the closest anchor fragment and actual text on zero matches', () => {
+    const content = 'intro line\nconst target = old value\noutro line\n'
+    expect(() => applyLiteralEdit(content, 'const target = new value', 'X', false, 'f'))
+      .toThrow(expect.objectContaining({
+        code: 'FS_EDIT_NOT_FOUND',
+        message: expect.stringContaining('closest anchor fragment at line 2 — actual text (line endings normalized):'),
+      }))
+  })
+
+  it('falls back to the no-fragment note when no anchor fragment survives', () => {
+    expect(() => applyLiteralEdit('a b c', 'totally unrelated anchor text', 'X', false, 'f'))
+      .toThrow(expect.objectContaining({
+        code: 'FS_EDIT_NOT_FOUND',
+        message: expect.stringContaining('no fragment of the anchor occurs in the file'),
+      }))
+  })
 })
 
 describe('readForEdit + restoreLineEndings', () => {

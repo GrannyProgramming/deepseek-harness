@@ -29,6 +29,7 @@ export {
   FsTargetKey,
   FsVersion,
 } from './types.ts'
+export { anchorMismatchDiagnostic, noFragmentNote } from './edit-diagnostics.ts'
 export type {
   FsEditOutcome,
   FsEditRequest,

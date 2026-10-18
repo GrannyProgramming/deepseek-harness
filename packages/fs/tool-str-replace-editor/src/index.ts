@@ -6,7 +6,7 @@
 import { isAbsolute } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { FsError } from '@deepseek-ai/dsh-fs'
+import { FsError, anchorMismatchDiagnostic, noFragmentNote } from '@deepseek-ai/dsh-fs'
 import type { FsInfo, FsTarget, FsWriteIntent } from '@deepseek-ai/dsh-fs'
 import { truncateWithoutSplittingSurrogatePair } from '@deepseek-ai/dsh-output-retention'
 import { sandboxDenialMarker } from '@deepseek-ai/dsh-sandbox'
@@ -297,8 +297,12 @@ async function replaceInFile(
   const offsets = matchOffsets(before, oldValue)
   const offset = offsets[0]
   if (offset === undefined) {
+    // Anchor-mismatch diagnostics: quote the actual text at the closest surviving
+    // anchor fragment (retro #103, F05). Matching above is over the raw text, so
+    // the probes use it too and the suffix must not claim line-ending normalization.
+    const diagnostic = anchorMismatchDiagnostic(before, oldValue, 12, { normalized: false }) || noFragmentNote()
     throw new FsError(
-      `No replacement was performed, old_str \`${oldValue}\` did not appear verbatim in ${target.displayPath}.`,
+      `No replacement was performed, old_str \`${oldValue}\` did not appear verbatim in ${target.displayPath}.${diagnostic}`,
       'FS_EDIT_NOT_FOUND',
     )
   }

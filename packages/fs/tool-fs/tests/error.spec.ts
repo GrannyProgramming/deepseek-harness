@@ -31,8 +31,20 @@ describe('remediateFsError', () => {
     expect(remedied.map(error => error.cause)).toEqual(sources)
   })
 
+  it('appends the actual-text remedy to FS_EDIT_NOT_FOUND', () => {
+    const remedied = remediateFsError(new FsError('old_string was not found in "x"', 'FS_EDIT_NOT_FOUND'), 'x') as FsError
+    expect(remedied.message).toBe('old_string was not found in "x" — retry with the actual text quoted in the error, or re-read the exact target range first — never guess an approximation of text you have not re-read')
+    expect(remedied.code).toBe('FS_EDIT_NOT_FOUND')
+  })
+
+  it('appends the specificity remedy to FS_AMBIGUOUS_EDIT', () => {
+    const remedied = remediateFsError(new FsError('old_string matched 3 times in "x"', 'FS_AMBIGUOUS_EDIT'), 'x') as FsError
+    expect(remedied.message).toBe('old_string matched 3 times in "x" — provide a more specific old_string spanning more surrounding context, or set replace_all to true')
+    expect(remedied.code).toBe('FS_AMBIGUOUS_EDIT')
+  })
+
   it('leaves other FsError codes untouched', () => {
-    const original = new FsError('no match anywhere', 'FS_EDIT_NOT_FOUND')
+    const original = new FsError('no such node', 'FS_NOT_FOUND')
     expect(remediateFsError(original, 'x')).toBe(original)
   })
 
